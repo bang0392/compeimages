@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\HocLapTrinhC\\CompareImages\\CompareImages.csproj": {}
+    "D:\\compeimages\\CompareImages\\CompareImages.csproj": {}
   },
   "projects": {
-    "D:\\HocLapTrinhC\\CompareImages\\CompareImages.csproj": {
+    "D:\\compeimages\\CompareImages\\CompareImages.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\HocLapTrinhC\\CompareImages\\CompareImages.csproj",
+        "projectUniqueName": "D:\\compeimages\\CompareImages\\CompareImages.csproj",
         "projectName": "CompareImages",
-        "projectPath": "D:\\HocLapTrinhC\\CompareImages\\CompareImages.csproj",
+        "projectPath": "D:\\compeimages\\CompareImages\\CompareImages.csproj",
         "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-        "outputPath": "D:\\HocLapTrinhC\\CompareImages\\obj\\",
+        "outputPath": "D:\\compeimages\\CompareImages\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
