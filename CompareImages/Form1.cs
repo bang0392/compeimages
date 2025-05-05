@@ -10,9 +10,12 @@ namespace CompareImages
     public partial class Form1 : Form
     {
         private string imagePath1, imagePath2;
+
         public Form1()
         {
             InitializeComponent();
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox2.SizeMode = PictureBoxSizeMode.Zoom;
         }
 
         private void btnChooseImages_Click(object sender, EventArgs e)
@@ -66,12 +69,11 @@ namespace CompareImages
                 }
 
                 // Tiến hành so sánh ảnh đã loại bỏ viền
-                Mat resultImage = CompareAndHighlightDifferences(croppedImg2, croppedImg1);
-                Mat resultImage1 = CompareAndHighlightDifferences(croppedImg1, croppedImg2);
+                Mat resultImage = CompareAndHighlightDifferences(croppedImg1, croppedImg2);
 
                 if (resultImage != null)
                 {
-                    pictureBox1.Image = BitmapConverter.ToBitmap(resultImage1);
+                    pictureBox1.Image = BitmapConverter.ToBitmap(resultImage);
                     pictureBox2.Image = BitmapConverter.ToBitmap(resultImage);
                     lblResult.Text = "Kết quả: Có sự khác biệt!";
                 }
@@ -89,6 +91,7 @@ namespace CompareImages
                 if (img1.Empty() || img2.Empty())
                     throw new Exception("Không đọc được ảnh.");
 
+                // Thực hiện chuẩn hóa kích thước ảnh trước khi so sánh
                 if (img1.Width > 1000)
                     Cv2.Resize(img1, img1, new OpenCvSharp.Size(800, img1.Height * 800 / img1.Width));
                 if (img2.Width > 1000)
@@ -99,14 +102,14 @@ namespace CompareImages
                 Cv2.CvtColor(img1, gray1, ColorConversionCodes.BGR2GRAY);
                 Cv2.CvtColor(img2, gray2, ColorConversionCodes.BGR2GRAY);
 
-                var sift = SIFT.Create();
-
+                // Dùng ORB để tìm các điểm đặc trưng
+                var orb = ORB.Create();
                 KeyPoint[] keypoints1, keypoints2;
                 Mat descriptors1 = new Mat(), descriptors2 = new Mat();
-                sift.DetectAndCompute(gray1, null, out keypoints1, descriptors1);
-                sift.DetectAndCompute(gray2, null, out keypoints2, descriptors2);
+                orb.DetectAndCompute(gray1, null, out keypoints1, descriptors1);
+                orb.DetectAndCompute(gray2, null, out keypoints2, descriptors2);
 
-                var bf = new BFMatcher(NormTypes.L2, crossCheck: true);
+                var bf = new BFMatcher(NormTypes.Hamming, crossCheck: true);
                 var matches = bf.Match(descriptors1, descriptors2);
 
                 if (matches.Length < 4)
@@ -127,14 +130,17 @@ namespace CompareImages
                     dstMat.Set(i, 0, new Point2f((float)dstPoints[i].X, (float)dstPoints[i].Y));
                 }
 
+                // Sử dụng RANSAC để tìm homography tốt hơn
                 var homography = Cv2.FindHomography(srcMat, dstMat, HomographyMethods.Ransac);
 
                 if (homography.Empty())
                     return null;
 
+                // Căn chỉnh ảnh theo homography tìm được
                 using var alignedImg2 = new Mat();
                 Cv2.WarpPerspective(img2, alignedImg2, homography, img1.Size());
 
+                // So sánh ảnh sau khi căn chỉnh
                 using var diff = new Mat();
                 Cv2.Absdiff(img1, alignedImg2, diff);
 
@@ -149,8 +155,7 @@ namespace CompareImages
                 if (contours.Length == 0)
                     return null;
 
-                var resultImg1 = img1.Clone();
-                var resultImg2 = alignedImg2.Clone();
+                var resultImg = img1.Clone();
 
                 foreach (var contour in contours)
                 {
@@ -158,14 +163,11 @@ namespace CompareImages
                     var center = new OpenCvSharp.Point(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
                     int radius = Math.Max(rect.Width, rect.Height) / 2 + 10;
 
-                    Cv2.Circle(resultImg1, center, radius, new Scalar(0, 0, 255), 3);
-                    Cv2.Circle(resultImg2, center, radius, new Scalar(255, 0, 0), 3);
+                    // Khoanh đỏ sự khác biệt
+                    Cv2.Circle(resultImg, center, radius, new Scalar(0, 0, 255), 3);
                 }
 
-                var result = new Mat();
-                Cv2.HConcat(new Mat[] { resultImg1, resultImg2 }, result);
-
-                return result;
+                return resultImg;
             }
             catch (Exception ex)
             {
