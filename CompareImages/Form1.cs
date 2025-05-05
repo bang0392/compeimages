@@ -1,6 +1,9 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using OpenCvSharp.Features2D;
+using System;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace CompareImages
 {
@@ -63,8 +66,8 @@ namespace CompareImages
                 }
 
                 // Tiến hành so sánh ảnh đã loại bỏ viền
-                Mat resultImage = CompareAndHighlightDifferences(croppedImg1, croppedImg2);
-                Mat resultImage1 = CompareAndHighlightDifferences(croppedImg2, croppedImg1);
+                Mat resultImage = CompareAndHighlightDifferences(croppedImg2, croppedImg1);
+                Mat resultImage1 = CompareAndHighlightDifferences(croppedImg1, croppedImg2);
 
                 if (resultImage != null)
                 {
@@ -91,8 +94,6 @@ namespace CompareImages
                 if (img2.Width > 1000)
                     Cv2.Resize(img2, img2, new OpenCvSharp.Size(800, img2.Height * 800 / img2.Width));
 
-                //img2 = AlignImages(img1, img2);
-
                 using var gray1 = new Mat();
                 using var gray2 = new Mat();
                 Cv2.CvtColor(img1, gray1, ColorConversionCodes.BGR2GRAY);
@@ -116,8 +117,9 @@ namespace CompareImages
                 var srcPoints = matches.Select(m => keypoints1[m.QueryIdx].Pt).ToArray();
                 var dstPoints = matches.Select(m => keypoints2[m.TrainIdx].Pt).ToArray();
 
-                Mat srcMat = new Mat(srcPoints.Length, 1, MatType.CV_32FC2);
-                Mat dstMat = new Mat(dstPoints.Length, 1, MatType.CV_32FC2);
+                // Chuyển đổi Point sang OpenCvSharp.Point
+                var srcMat = new Mat(srcPoints.Length, 1, MatType.CV_32FC2);
+                var dstMat = new Mat(dstPoints.Length, 1, MatType.CV_32FC2);
 
                 for (int i = 0; i < srcPoints.Length; i++)
                 {

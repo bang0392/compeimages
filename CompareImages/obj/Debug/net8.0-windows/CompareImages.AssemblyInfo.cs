@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CompareImages")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d214257ab3be95301e392e9c3280c983cbfcbe3f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e80151eac466b924c5f482edc74c07b171387953")]
 [assembly: System.Reflection.AssemblyProductAttribute("CompareImages")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CompareImages")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
