@@ -40,51 +40,27 @@ namespace CompareImages
             }
         }
 
-        private void btnCompare_Click(object sender, EventArgs e)
+       private void btnCompare_Click(object sender, EventArgs e)
+{
+    if (string.IsNullOrEmpty(imagePath1) || string.IsNullOrEmpty(imagePath2))
+    {
+        MessageBox.Show("Hãy chọn 2 ảnh trước!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        return;
+    }
+
+    using (Mat img1 = Cv2.ImRead(imagePath1, ImreadModes.Color))
+    using (Mat img2 = Cv2.ImRead(imagePath2, ImreadModes.Color))
+    {
+        if (img1.Empty() || img2.Empty())
         {
-            if (string.IsNullOrEmpty(imagePath1) || string.IsNullOrEmpty(imagePath2))
-            {
-                MessageBox.Show("Hãy chọn 2 ảnh trước!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // Đọc ảnh
-            using (Mat img1 = Cv2.ImRead(imagePath1, ImreadModes.Color))
-            using (Mat img2 = Cv2.ImRead(imagePath2, ImreadModes.Color))
-            {
-                if (img1.Empty() || img2.Empty())
-                {
-                    MessageBox.Show("Không thể đọc ảnh!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // Loại bỏ viền và giữ lại phần nội dung chính
-                Mat croppedImg1 = CropBorders(img1);
-                Mat croppedImg2 = CropBorders(img2);
-
-                if (croppedImg1 == null || croppedImg2 == null)
-                {
-                    MessageBox.Show("Không tìm thấy nội dung hợp lệ sau khi cắt viền!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // Tiến hành so sánh ảnh đã loại bỏ viền
-                Mat resultImage = CompareAndHighlightDifferences(croppedImg1, croppedImg2);
-
-                if (resultImage != null)
-                {
-                    pictureBox1.Image = BitmapConverter.ToBitmap(resultImage);
-                    pictureBox2.Image = BitmapConverter.ToBitmap(resultImage);
-                    lblResult.Text = "Kết quả: Có sự khác biệt!";
-                }
-                else
-                {
-                    lblResult.Text = "Kết quả: Ảnh giống nhau!";
-                }
-            }
+            MessageBox.Show("Không thể đọc ảnh!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
         }
 
-        private Mat CompareAndHighlightDifferences(Mat img1, Mat img2)
+        Mat croppedImg1 = CropBorders(img1);
+        Mat croppedImg2 = CropBorders(img2);
+
+        if (croppedImg1 == null || croppedImg2 == null)
         {
             try
             {
