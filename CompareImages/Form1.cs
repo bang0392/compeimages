@@ -91,11 +91,24 @@ namespace CompareImages
                 if (img1.Empty() || img2.Empty())
                     throw new Exception("Không đọc được ảnh.");
 
-                // Thực hiện chuẩn hóa kích thước ảnh trước khi so sánh
-                if (img1.Width > 1000)
-                    Cv2.Resize(img1, img1, new OpenCvSharp.Size(800, img1.Height * 800 / img1.Width));
-                if (img2.Width > 1000)
-                    Cv2.Resize(img2, img2, new OpenCvSharp.Size(800, img2.Height * 800 / img2.Width));
+                // Tiến hành resize ảnh về kích thước 500x500 để so sánh
+                int targetHeight = 500; // Chiều cao mới
+                int originalWidth = img1.Width;
+                int originalHeight = img1.Height;
+
+                // Tính toán tỷ lệ giữa chiều cao và chiều rộng
+                double aspectRatio = (double)originalWidth / originalHeight;
+
+                // Tính chiều rộng mới dựa trên chiều cao đã thay đổi
+                int targetWidth = (int)(targetHeight * aspectRatio);
+
+                // Điều chỉnh kích thước ảnh sao cho không bị méo
+                Cv2.Resize(img1, img1, new OpenCvSharp.Size(targetWidth, targetHeight));
+                Cv2.Resize(img2, img2, new OpenCvSharp.Size(targetWidth, targetHeight));
+
+                // Áp dụng bộ lọc làm sắc nét (sharpening) cho cả 2 ảnh
+                img1 = SharpenImage(img1);
+                img2 = SharpenImage(img2);
 
                 using var gray1 = new Mat();
                 using var gray2 = new Mat();
@@ -120,7 +133,6 @@ namespace CompareImages
                 var srcPoints = matches.Select(m => keypoints1[m.QueryIdx].Pt).ToArray();
                 var dstPoints = matches.Select(m => keypoints2[m.TrainIdx].Pt).ToArray();
 
-                // Chuyển đổi Point sang OpenCvSharp.Point
                 var srcMat = new Mat(srcPoints.Length, 1, MatType.CV_32FC2);
                 var dstMat = new Mat(dstPoints.Length, 1, MatType.CV_32FC2);
 
@@ -130,17 +142,14 @@ namespace CompareImages
                     dstMat.Set(i, 0, new Point2f((float)dstPoints[i].X, (float)dstPoints[i].Y));
                 }
 
-                // Sử dụng RANSAC để tìm homography tốt hơn
                 var homography = Cv2.FindHomography(srcMat, dstMat, HomographyMethods.Ransac);
 
                 if (homography.Empty())
                     return null;
 
-                // Căn chỉnh ảnh theo homography tìm được
                 using var alignedImg2 = new Mat();
                 Cv2.WarpPerspective(img2, alignedImg2, homography, img1.Size());
 
-                // So sánh ảnh sau khi căn chỉnh
                 using var diff = new Mat();
                 Cv2.Absdiff(img1, alignedImg2, diff);
 
@@ -175,6 +184,25 @@ namespace CompareImages
                 return null;
             }
         }
+
+        private Mat SharpenImage(Mat image)
+        {
+            Mat sharpenKernel = new Mat(3, 3, MatType.CV_32F);
+            sharpenKernel.Set<float>(0, 0, -1);
+            sharpenKernel.Set<float>(0, 1, -1);
+            sharpenKernel.Set<float>(0, 2, -1);
+            sharpenKernel.Set<float>(1, 0, -1);
+            sharpenKernel.Set<float>(1, 1, 9);
+            sharpenKernel.Set<float>(1, 2, -1);
+            sharpenKernel.Set<float>(2, 0, -1);
+            sharpenKernel.Set<float>(2, 1, -1);
+            sharpenKernel.Set<float>(2, 2, -1);
+
+            Mat sharpenedImage = new Mat();
+            Cv2.Filter2D(image, sharpenedImage, -1, sharpenKernel);
+            return sharpenedImage;
+        }
+
 
         private Mat CropBorders(Mat image)
         {
