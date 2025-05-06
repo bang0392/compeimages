@@ -129,8 +129,8 @@ namespace CompareImages
                     srcMat.Set(i, 0, new Point2f((float)srcPoints[i].X, (float)srcPoints[i].Y));
                     dstMat.Set(i, 0, new Point2f((float)dstPoints[i].X, (float)dstPoints[i].Y));
                 }
-
-                // Sử dụng RANSAC để tìm homography tốt hơn
+                
+                // Sử dụng RANSAC để tìm homography tốt hơn alo
                 var homography = Cv2.FindHomography(srcMat, dstMat, HomographyMethods.Ransac);
 
                 if (homography.Empty())
