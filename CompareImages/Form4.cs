@@ -1,9 +1,4 @@
-dotnet add package OpenCvSharp4
-dotnet add package OpenCvSharp4.runtime.win
-dotnet add package OpenCvSharp4.Extensions
-
-
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using OpenCvSharp.Features2D;
 using System;

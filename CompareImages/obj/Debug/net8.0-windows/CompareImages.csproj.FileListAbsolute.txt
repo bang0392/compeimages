@@ -49,3 +49,4 @@ D:\compeimages\CompareImages\obj\Debug\net8.0-windows\CompareImages.pdb
 D:\compeimages\CompareImages\obj\Debug\net8.0-windows\CompareImages.genruntimeconfig.cache
 D:\compeimages\CompareImages\obj\Debug\net8.0-windows\ref\CompareImages.dll
 D:\compeimages\CompareImages\obj\Debug\net8.0-windows\CompareImages.Form3.resources
+D:\compeimages\CompareImages\obj\Debug\net8.0-windows\CompareImages.Form4.resources
