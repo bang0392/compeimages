@@ -1,65 +1,54 @@
-  private List<List<string>> AddPreSufIndex(Excel.Worksheet ex_ws_layout_file, List<List<string>> NewDestListAllModel)
-  {
-      for (int o = 0; o < NewDestListAllModel.Count; o++)
-      {
-          int q = NewDestListAllModel[o].Count - 1;
-          while (q > 0 && NewDestListAllModel[o][q] != ";")
-          {
-              if (q > 0)
-              {
-                  q--;
-              }
-              else
-                  break;
-          }
-          if (q > 0)
-          {
-              string prefix = "";
-              string suffix = "";
-              int addAt = 1;
-              List<string> ListSamePrefix = new List<string>();
-              int p = 1;
-              int lenghtDestListBefore = 1;
-              if (q - lenghtDestListBefore > 0)
-              {
-                  prefix = NewDestListAllModel[o][p].Trim().Substring(0, 5);
+private List<List<string>> AddPreSufIndex(Excel.Worksheet ex_ws_layout_file, List<List<string>> NewDestListAllModel)
+{
+    for (int o = 0; o < NewDestListAllModel.Count; o++)
+    {
+        int q = NewDestListAllModel[o].Count - 1;
+        while (q > 0 && NewDestListAllModel[o][q] != ";") q--;
 
-                  while (q - 1 > 0)
-                  {
-                          if (prefix == NewDestListAllModel[o][p].Trim().Substring(0, 5))
-                          {
-                              if (NewDestListAllModel[o][p].Length == 11)
-                              {
-                                  suffix = NewDestListAllModel[o][p].Substring(8, 2); // Lấy hậu tố từ chuỗi 10 ký tự
-                              }
+        if (q > 0)
+        {
+            int currentIndex = 1;
+            while (currentIndex < q)
+            {
+                string current = NewDestListAllModel[o][currentIndex].Trim();
+                if (current.Length < 5)
+                {
+                    currentIndex++;
+                    continue;
+                }
 
-                              ListSamePrefix.Add(NewDestListAllModel[o][p].Trim().Substring(5, 3));
-                              NewDestListAllModel[o].RemoveAt(p);
-                              q--;
-                              continue;
-                          }
-                          else
-                          {
-                              ListSamePrefix.Sort();
+                string prefix = current.Substring(0, 5);
+                string suffix = current.Length == 11 ? current.Substring(8, 2) : "";  // Lấy hậu tố nếu có
+                List<string> middleList = new List<string>();
 
-                              for (int i = 0; i < ListSamePrefix.Count; i++)
-                              {
-                                  ListSamePrefix[i] = prefix + ListSamePrefix[i] + suffix; // Áp dụng hậu tố đã lấy
-                              }
+                // Bắt đầu gom nhóm
+                int checkIndex = currentIndex;
+                while (checkIndex < q)
+                {
+                    string check = NewDestListAllModel[o][checkIndex].Trim();
+                    if (check.StartsWith(prefix))
+                    {
+                        if (check.Length == 11)
+                            suffix = check.Substring(8, 2); // Cập nhật hậu tố nếu có
 
-                              NewDestListAllModel[o].InsertRange(lenghtDestListBefore, ListSamePrefix);
-                              lenghtDestListBefore = lenghtDestListBefore + ListSamePrefix.Count;
-                              prefix = NewDestListAllModel[o][lenghtDestListBefore].Trim().Substring(0, 5);
-                              p = p + lenghtDestListBefore - 1;
-                              q = q + lenghtDestListBefore - 1;
-                          }
-                     
-                          
-                  }
-              }
-          }
+                        middleList.Add(check.Substring(5, 3)); // Lấy phần giữa
+                        NewDestListAllModel[o].RemoveAt(checkIndex);
+                        q--;
+                    }
+                    else
+                    {
+                        checkIndex++;
+                    }
+                }
 
-      }
+                // Sắp xếp và thêm lại vào danh sách
+                middleList.Sort();
+                List<string> newItems = middleList.Select(m => prefix + m + suffix).ToList();
+                NewDestListAllModel[o].InsertRange(currentIndex, newItems);
+                currentIndex += newItems.Count;
+            }
+        }
+    }
 
-      return NewDestListAllModel;
-  }
+    return NewDestListAllModel;
+}
