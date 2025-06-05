@@ -1,54 +1,30 @@
-private List<List<string>> AddPreSufIndex(Excel.Worksheet ex_ws_layout_file, List<List<string>> NewDestListAllModel)
-{
-    for (int o = 0; o < NewDestListAllModel.Count; o++)
-    {
-        int q = NewDestListAllModel[o].Count - 1;
-        while (q > 0 && NewDestListAllModel[o][q] != ";") q--;
 
-        if (q > 0)
-        {
-            int currentIndex = 1;
-            while (currentIndex < q)
-            {
-                string current = NewDestListAllModel[o][currentIndex].Trim();
-                if (current.Length < 5)
-                {
-                    currentIndex++;
-                    continue;
-                }
+<div class="text-center">
+    <h2>Camera</h2>
+    <video id="video" width="320" height="240" autoplay></video>
+    <br />
+    <button id="snap">Chụp ảnh</button>
+    <canvas id="canvas" width="320" height="240"></canvas>
+</div>
 
-                string prefix = current.Substring(0, 5);
-                string suffix = current.Length == 11 ? current.Substring(8, 2) : "";  // Lấy hậu tố nếu có
-                List<string> middleList = new List<string>();
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+    const snap = document.getElementById('snap');
 
-                // Bắt đầu gom nhóm
-                int checkIndex = currentIndex;
-                while (checkIndex < q)
-                {
-                    string check = NewDestListAllModel[o][checkIndex].Trim();
-                    if (check.StartsWith(prefix))
-                    {
-                        if (check.Length == 11)
-                            suffix = check.Substring(8, 2); // Cập nhật hậu tố nếu có
+    // Mở camera
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+            video.srcObject = stream;
+        })
+        .catch((err) => {
+            console.error("Lỗi khi truy cập camera:", err);
+            alert("Không thể truy cập camera!");
+        });
 
-                        middleList.Add(check.Substring(5, 3)); // Lấy phần giữa
-                        NewDestListAllModel[o].RemoveAt(checkIndex);
-                        q--;
-                    }
-                    else
-                    {
-                        checkIndex++;
-                    }
-                }
-
-                // Sắp xếp và thêm lại vào danh sách
-                middleList.Sort();
-                List<string> newItems = middleList.Select(m => prefix + m + suffix).ToList();
-                NewDestListAllModel[o].InsertRange(currentIndex, newItems);
-                currentIndex += newItems.Count;
-            }
-        }
-    }
-
-    return NewDestListAllModel;
-}
+    // Khi bấm nút "Chụp ảnh"
+    snap.addEventListener("click", () => {
+        context.drawImage(video, 0, 0, 320, 240);
+    });
+</script>
