@@ -1,30 +1,193 @@
+@page
+@model Jig_Store_Management_System.Pages.TestCalibrationModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kéo Thả và Thay Đổi Kích Thước Ảnh</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
 
-<div class="text-center">
-    <h2>Camera</h2>
-    <video id="video" width="320" height="240" autoplay></video>
-    <br />
-    <button id="snap">Chụp ảnh</button>
-    <canvas id="canvas" width="320" height="240"></canvas>
-</div>
+        .preview-area {
+            width: 90%;
+            min-height: 200px;
+            border: 2px solid #ddd;
+            margin: 20px auto;
+            padding: 10px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
 
-<script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const context = canvas.getContext('2d');
-    const snap = document.getElementById('snap');
+        .drop-area {
+            width: 210mm;
+            height: 297mm;
+            border: 2px dashed #ccc;
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
 
-    // Mở camera
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then((stream) => {
-            video.srcObject = stream;
-        })
-        .catch((err) => {
-            console.error("Lỗi khi truy cập camera:", err);
-            alert("Không thể truy cập camera!");
+        .image {
+            cursor: move;
+            max-width: 150px;
+            max-height: 150px;
+        }
+
+        .resize-handle {
+            width: 15px; /* Tăng kích thước nếu cần nhìn rõ hơn */
+            height: 15px;
+            background: red; /* Tô màu để dễ kiểm tra */
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            cursor: se-resize; /* Hiển thị con trỏ thay đổi kích thước */
+            z-index: 10; /* Đảm bảo handle hiển thị trên ảnh */
+        }
+    </style>
+</head>
+<body>
+    <h1>Chọn và Kéo Thả Ảnh</h1>
+    <button id="getDataButton">Lấy Thông Tin Ảnh</button>
+    <input type="file" id="fileInput" multiple>
+    <div class="preview-area" id="previewArea">
+        <p>Ảnh được chọn sẽ hiển thị tại đây:</p>
+    </div>
+    <div class="drop-area" id="dropArea"></div>
+
+    <form method="post" id="hiddenForm" asp-page-handler="SubmitImport" style="display: none;">
+        <input type="text" id="dataImagesString" name="dataImages" required>
+    </form>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const dropArea = document.getElementById('dropArea');
+        const imageBase64Data = new Map();
+
+        // Xử lý file và Base64
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            for (const file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.classList.add('image');
+                    img.src = e.target.result;
+                    img.alt = file.name;
+                    previewArea.appendChild(img);
+                    makeDraggable(img);
+                    makeResizable(img);
+                };
+                reader.readAsDataURL(file);
+            }
         });
 
-    // Khi bấm nút "Chụp ảnh"
-    snap.addEventListener("click", () => {
-        context.drawImage(video, 0, 0, 320, 240);
-    });
-</script>
+        // Hàm kéo thả ảnh
+        function makeDraggable(image) {
+            let offsetX, offsetY;
+            image.addEventListener('mousedown', (event) => {
+                offsetX = event.offsetX;
+                offsetY = event.offsetY;
+                document.addEventListener('mousemove', moveImage);
+                document.addEventListener('mouseup', () => {
+                    document.removeEventListener('mousemove', moveImage);
+                });
+            });
+
+            function moveImage(event) {
+                const dropBounds = dropArea.getBoundingClientRect();
+                const imgBounds = image.getBoundingClientRect();
+                const x = event.clientX - offsetX;
+                const y = event.clientY - offsetY;
+
+                if (x >= dropBounds.left && y >= dropBounds.top && x + imgBounds.width <= dropBounds.right && y + imgBounds.height <= dropBounds.bottom) {
+                    image.style.position = 'absolute';
+                    image.style.top = `${y - dropBounds.top}px`;
+                    image.style.left = `${x - dropBounds.left}px`;
+                    dropArea.appendChild(image);
+                }
+            }
+        }
+
+        // Hàm thay đổi kích thước ảnh
+               function makeResizable(image) {
+            image.addEventListener('dblclick', () => {
+                console.log("Đã click 2 lần");
+
+                // Kiểm tra xem handle đã tồn tại chưa để tránh thêm nhiều lần
+                const existingHandle = image.querySelector('.resize-handle');
+                if (existingHandle) return;
+
+                const resizeHandle = document.createElement('div');
+                resizeHandle.classList.add('resize-handle');
+                image.style.position = 'relative'; // Cần thiết để handle hiển thị đúng vị trí
+                image.appendChild(resizeHandle);
+
+                const onMouseMove = (event) => {
+                    const newWidth = event.clientX - image.getBoundingClientRect().left;
+                    const newHeight = event.clientY - image.getBoundingClientRect().top;
+                    if (newWidth > 50 && newHeight > 50) { // Giới hạn kích thước tối thiểu
+                        image.style.width = `${newWidth}px`;
+                        image.style.height = `${newHeight}px`;
+                    }
+                };
+
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                resizeHandle.addEventListener('mousedown', (event) => {
+                    event.stopPropagation(); // Ngăn sự kiện lan ra ngoài
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+            });
+        }
+
+        // Lấy thông tin các ảnh đã được thả vào vùng A4
+        const getDataButton = document.getElementById('getDataButton');
+        getDataButton.addEventListener('click', () => {
+            const images = dropArea.querySelectorAll('.image');
+            const imageData = [];
+
+            images.forEach(image => {
+                const rect = image.getBoundingClientRect();
+                const dropRect = dropArea.getBoundingClientRect();
+                const top = rect.top - dropRect.top;
+                const left = rect.left - dropRect.left;
+                const width = rect.width;
+                const height = rect.height;
+
+                const base64 = imageBase64Data.get(image.alt);
+
+                imageData.push({
+                    Name: image.alt || 'Unnamed Image',
+                    Base64: base64,
+                    Top: Math.round(top),
+                    Left: Math.round(left),
+                    Width: Math.round(width),
+                    Height: Math.round(height)
+                });
+            });
+
+            const dataImagesString = JSON.stringify(imageData);
+
+            document.getElementById("dataImagesString").value = dataImagesString;
+            document.getElementById("hiddenForm").submit();
+
+            console.log("data : ", imageData);
+            alert("Thông tin ảnh đã được lấy và hiển thị trong console!");
+        });
+    </script>
+</body>
+</html>
