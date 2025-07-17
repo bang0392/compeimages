@@ -38,19 +38,46 @@
 
         .image {
             cursor: move;
-            max-width: 150px;
-            max-height: 150px;
         }
 
-        .resize-handle {
-            width: 15px; /* Tăng kích thước nếu cần nhìn rõ hơn */
-            height: 15px;
-            background: red; /* Tô màu để dễ kiểm tra */
+        .resize-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        img {
+            width: 200px;
+            height: auto;
+        }
+
+        .resizer {
+            background-color: orange;
             position: absolute;
-            bottom: 0;
-            right: 0;
-            cursor: se-resize; /* Hiển thị con trỏ thay đổi kích thước */
-            z-index: 10; /* Đảm bảo handle hiển thị trên ảnh */
+            cursor: pointer;
+        }
+
+        .top-left {
+            top: -5px;
+            left: -5px;
+            cursor: nw-resize;
+        }
+
+        .top-right {
+            top: -5px;
+            right: -5px;
+            cursor: ne-resize;
+        }
+
+        .bottom-left {
+            bottom: -5px;
+            left: -5px;
+            cursor: sw-resize;
+        }
+
+        .bottom-right {
+            bottom: -5px;
+            right: -5px;
+            cursor: se-resize;
         }
     </style>
 </head>
@@ -73,25 +100,32 @@
         const dropArea = document.getElementById('dropArea');
         const imageBase64Data = new Map();
 
-        // Xử lý file và Base64
         fileInput.addEventListener('change', (event) => {
             const files = event.target.files;
             for (const file of files) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    const container = document.createElement('div');
+                    container.classList.add('resize-container');
+                    container.style.position = 'relative';
+
                     const img = document.createElement('img');
                     img.classList.add('image');
                     img.src = e.target.result;
                     img.alt = file.name;
-                    previewArea.appendChild(img);
-                    makeDraggable(img);
-                    makeResizable(img);
+                    container.appendChild(img);
+
+                    imageBase64Data.set(file.name, e.target.result.split(',')[1]);
+
+                    previewArea.appendChild(container);
+
+                    makeDraggable(container);
+                    makeResizable(container);
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Hàm kéo thả ảnh
         function makeDraggable(image) {
             let offsetX, offsetY;
             image.addEventListener('mousedown', (event) => {
@@ -118,43 +152,112 @@
             }
         }
 
-        // Hàm thay đổi kích thước ảnh
-               function makeResizable(image) {
-            image.addEventListener('dblclick', () => {
-                console.log("Đã click 2 lần");
+        function makeResizable(container) {
+            container.addEventListener('dblclick', () => {
 
-                // Kiểm tra xem handle đã tồn tại chưa để tránh thêm nhiều lần
-                const existingHandle = image.querySelector('.resize-handle');
-                if (existingHandle) return;
+                removeResizeHandles(container);
 
-                const resizeHandle = document.createElement('div');
-                resizeHandle.classList.add('resize-handle');
-                image.style.position = 'relative'; // Cần thiết để handle hiển thị đúng vị trí
-                image.appendChild(resizeHandle);
+                const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+                corners.forEach(corner => {
+                    const handle = document.createElement('div');
+                    handle.classList.add('resizer', corner);
+                    handle.style.position = 'absolute';
+                    handle.style.width = '10px';
+                    handle.style.height = '10px';
+                    handle.style.backgroundColor = 'orange';
+                    handle.style.cursor = getCursor(corner);
+                    positionHandle(handle, corner, container);
+                    container.appendChild(handle);
 
-                const onMouseMove = (event) => {
-                    const newWidth = event.clientX - image.getBoundingClientRect().left;
-                    const newHeight = event.clientY - image.getBoundingClientRect().top;
-                    if (newWidth > 50 && newHeight > 50) { // Giới hạn kích thước tối thiểu
-                        image.style.width = `${newWidth}px`;
-                        image.style.height = `${newHeight}px`;
+                    handle.addEventListener('mousedown', (event) => resizeImage(event, container, corner));
+                });
+
+                const handleOutsideClick = (event) => {
+                    if (!container.contains(event.target)) {
+                        removeResizeHandles(container);
+                        document.removeEventListener('click', handleOutsideClick);
                     }
                 };
 
-                const onMouseUp = () => {
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-
-                resizeHandle.addEventListener('mousedown', (event) => {
-                    event.stopPropagation(); // Ngăn sự kiện lan ra ngoài
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                });
+                document.addEventListener('click', handleOutsideClick);
             });
         }
 
-        // Lấy thông tin các ảnh đã được thả vào vùng A4
+        function removeResizeHandles(container) {
+            const handles = container.querySelectorAll('.resizer');
+            handles.forEach(handle => handle.remove());
+        }
+
+        function positionHandle(handle, corner, container) {
+            if (corner.includes('top')) handle.style.top = '-5px';
+            if (corner.includes('bottom')) handle.style.bottom = '-5px';
+            if (corner.includes('left')) handle.style.left = '-5px';
+            if (corner.includes('right')) handle.style.right = '-5px';
+        }
+
+        function getCursor(corner) {
+            switch (corner) {
+                case 'top-left':
+                case 'bottom-right':
+                    return 'nwse-resize';
+                case 'top-right':
+                case 'bottom-left':
+                    return 'nesw-resize';
+            }
+        }
+
+        function resizeImage(event, container, corner) {
+            event.stopPropagation();
+            const img = container.querySelector('img');
+            const startX = event.pageX;
+            const startY = event.pageY;
+            const startWidth = img.offsetWidth;
+            const startHeight = img.offsetHeight;
+            const startLeft = container.offsetLeft;
+            const startTop = container.offsetTop;
+
+            const onMouseMove = (moveEvent) => {
+                const dx = moveEvent.pageX - startX;
+                const dy = moveEvent.pageY - startY;
+
+                if (corner.includes('right')) {
+                    img.style.width = `${startWidth + dx}px`;
+                }
+                if (corner.includes('bottom')) {
+                    img.style.height = `${startHeight + dy}px`;
+                }
+                if (corner.includes('left')) {
+                    img.style.width = `${startWidth - dx}px`;
+                    container.style.left = `${startLeft + dx}px`;
+                }
+                if (corner.includes('top')) {
+                    img.style.height = `${startHeight - dy}px`;
+                    container.style.top = `${startTop + dy}px`;
+                }
+            };
+
+            const onMouseUp = async () => {
+                const updatedBase64 = await generateBase64(img);
+                imageBase64Data.set(img.alt, updatedBase64.split(',')[1]);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+
+        function generateBase64(img) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.offsetWidth;
+                canvas.height = img.offsetHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL());
+            });
+        }
+
         const getDataButton = document.getElementById('getDataButton');
         getDataButton.addEventListener('click', () => {
             const images = dropArea.querySelectorAll('.image');
@@ -185,7 +288,6 @@
             document.getElementById("dataImagesString").value = dataImagesString;
             document.getElementById("hiddenForm").submit();
 
-            console.log("data : ", imageData);
             alert("Thông tin ảnh đã được lấy và hiển thị trong console!");
         });
     </script>
